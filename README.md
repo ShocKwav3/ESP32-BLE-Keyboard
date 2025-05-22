@@ -1,6 +1,11 @@
+# Purpose of this fork
+
+The original library is not maintained anymore. Working with it leads to numerous compile errors. Those are addressed in this fork, like many others out there. I use this with my projects that I make using platformIO. So, I needed to host the changed code somewhere and track the changes. Hence this fork. Probably add some more changes along the way as need arises.
+
+
 # ESP32 BLE Keyboard library
 
-This library allows you to make the ESP32 act as a Bluetooth Keyboard and control what it does.  
+This library allows you to make the ESP32 act as a Bluetooth Keyboard and control what it does.
 You might also be interested in:
 - [ESP32-BLE-Mouse](https://github.com/T-vK/ESP32-BLE-Mouse)
 - [ESP32-BLE-Gamepad](https://github.com/lemmingDev/ESP32-BLE-Gamepad)
@@ -58,11 +63,11 @@ void loop() {
     bleKeyboard.write(KEY_MEDIA_PLAY_PAUSE);
 
     delay(1000);
-    
+
    //
-   // Below is an example of pressing multiple keyboard modifiers 
-   // which by default is commented out. 
-   // 
+   // Below is an example of pressing multiple keyboard modifiers
+   // which by default is commented out.
+   //
    /* Serial.println("Sending Ctrl+Alt+Delete...");
     bleKeyboard.press(KEY_LEFT_CTRL);
     bleKeyboard.press(KEY_LEFT_ALT);
@@ -106,11 +111,11 @@ In addition to that you can send media keys (which is not possible with the USB 
 - KEY_MEDIA_EMAIL_READER
 
 There is also Bluetooth specific information that you can set (optional):
-Instead of `BleKeyboard bleKeyboard;` you can do `BleKeyboard bleKeyboard("Bluetooth Device Name", "Bluetooth Device Manufacturer", 100);`. (Max lenght is 15 characters, anything beyond that will be truncated.)  
-The third parameter is the initial battery level of your device. To adjust the battery level later on you can simply call e.g.  `bleKeyboard.setBatteryLevel(50)` (set battery level to 50%).  
-By default the battery level will be set to 100%, the device name will be `ESP32 Bluetooth Keyboard` and the manufacturer will be `Espressif`.  
-There is also a `setDelay` method to set a delay between each key event. E.g. `bleKeyboard.setDelay(10)` (10 milliseconds). The default is `8`.  
-This feature is meant to compensate for some applications and devices that can't handle fast input and will skip letters if too many keys are sent in a small time frame.  
+Instead of `BleKeyboard bleKeyboard;` you can do `BleKeyboard bleKeyboard("Bluetooth Device Name", "Bluetooth Device Manufacturer", 100);`. (Max lenght is 15 characters, anything beyond that will be truncated.)
+The third parameter is the initial battery level of your device. To adjust the battery level later on you can simply call e.g.  `bleKeyboard.setBatteryLevel(50)` (set battery level to 50%).
+By default the battery level will be set to 100%, the device name will be `ESP32 Bluetooth Keyboard` and the manufacturer will be `Espressif`.
+There is also a `setDelay` method to set a delay between each key event. E.g. `bleKeyboard.setDelay(10)` (10 milliseconds). The default is `8`.
+This feature is meant to compensate for some applications and devices that can't handle fast input and will skip letters if too many keys are sent in a small time frame.
 
 ## NimBLE-Mode
 The NimBLE mode enables a significant saving of RAM and FLASH memory.
@@ -139,7 +144,7 @@ Flash: [====      ]  44.2% (used 579158 bytes from 1310720 bytes)
 
 ## How to activate NimBLE mode?
 
-### ArduinoIDE: 
+### ArduinoIDE:
 Uncomment the first line in BleKeyboard.h
 ```C++
 #define USE_NIMBLE
@@ -148,15 +153,15 @@ Uncomment the first line in BleKeyboard.h
 ### PlatformIO:
 Change your `platformio.ini` to the following settings
 ```ini
-lib_deps = 
+lib_deps =
   NimBLE-Arduino
 
-build_flags = 
+build_flags =
   -D USE_NIMBLE
 ```
 
 ## Credits
 
-Credits to [chegewara](https://github.com/chegewara) and [the authors of the USB keyboard library](https://github.com/arduino-libraries/Keyboard/) as this project is heavily based on their work!  
+Credits to [chegewara](https://github.com/chegewara) and [the authors of the USB keyboard library](https://github.com/arduino-libraries/Keyboard/) as this project is heavily based on their work!
 Also, credits to [duke2421](https://github.com/T-vK/ESP32-BLE-Keyboard/issues/1) who helped a lot with testing, debugging and fixing the device descriptor!
 And credits to [sivar2311](https://github.com/sivar2311) for adding NimBLE support, greatly reducing the memory footprint, fixing advertising issues and for adding the `setDelay` method.
