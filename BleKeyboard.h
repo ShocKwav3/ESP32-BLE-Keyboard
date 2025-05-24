@@ -10,6 +10,8 @@
 
 #include "NimBLECharacteristic.h"
 #include "NimBLEHIDDevice.h"
+#include "NimBLEAdvertising.h"
+#include "NimBLEServer.h"
 
 #define BLEDevice                  NimBLEDevice
 #define BLEServerCallbacks         NimBLEServerCallbacks
@@ -138,8 +140,8 @@ private:
   BLEAdvertising*    advertising;
   KeyReport          _keyReport;
   MediaKeyReport     _mediaKeyReport;
-  std::string        deviceName;
-  std::string        deviceManufacturer;
+  String        deviceName;
+  String        deviceManufacturer;
   uint8_t            batteryLevel;
   bool               connected = false;
   uint32_t           _delay_ms = 7;
@@ -150,7 +152,7 @@ private:
   uint16_t version   = 0x0210;
 
 public:
-  BleKeyboard(std::string deviceName = "ESP32 Keyboard", std::string deviceManufacturer = "Espressif", uint8_t batteryLevel = 100);
+  BleKeyboard(String deviceName = "ESP32 Keyboard", String deviceManufacturer = "Espressif", uint8_t batteryLevel = 100);
   void begin(void);
   void end(void);
   void sendReport(KeyReport* keys);
@@ -165,7 +167,7 @@ public:
   void releaseAll(void);
   bool isConnected(void);
   void setBatteryLevel(uint8_t level);
-  void setName(std::string deviceName);  
+  void setName(String deviceName);
   void setDelay(uint32_t ms);
 
   void set_vendor_id(uint16_t vid);
@@ -173,9 +175,16 @@ public:
   void set_version(uint16_t version);
 protected:
   virtual void onStarted(BLEServer *pServer) { };
+
+  #if defined(USE_NIMBLE)
+  virtual void onConnect(BLEServer* pServer, NimBLEConnInfo & connInfo) override;
+  virtual void onDisconnect(BLEServer* pServer, NimBLEConnInfo & connInfo, int reason) override;
+  virtual void onWrite(BLECharacteristic* me, NimBLEConnInfo & connInfo) override;
+  #else
   virtual void onConnect(BLEServer* pServer) override;
   virtual void onDisconnect(BLEServer* pServer) override;
   virtual void onWrite(BLECharacteristic* me) override;
+  #endif // USE_NIMBLE
 
 };
 
