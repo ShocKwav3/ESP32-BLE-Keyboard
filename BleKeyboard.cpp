@@ -103,22 +103,39 @@ BleKeyboard::BleKeyboard(String deviceName, String deviceManufacturer, uint8_t b
 
 void BleKeyboard::begin(void)
 {
+
+#if defined(USE_NIMBLE)
+  BLEDevice::init(deviceName.c_str());
+#else
   BLEDevice::init(deviceName);
+#endif // USE_NIMBLE
+
   BLEServer* pServer = BLEDevice::createServer();
   pServer->setCallbacks(this);
 
   hid = new BLEHIDDevice(pServer);
+
+#if defined(USE_NIMBLE)
+  inputKeyboard = hid->getInputReport(KEYBOARD_ID);  // <-- input REPORTID from report map
+  outputKeyboard = hid->getOutputReport(KEYBOARD_ID);
+  inputMediaKeys = hid->getInputReport(MEDIA_KEYS_ID);
+#else
   inputKeyboard = hid->inputReport(KEYBOARD_ID);  // <-- input REPORTID from report map
   outputKeyboard = hid->outputReport(KEYBOARD_ID);
   inputMediaKeys = hid->inputReport(MEDIA_KEYS_ID);
+#endif
 
   outputKeyboard->setCallbacks(this);
 
+#if defined(USE_NIMBLE)
+  hid->setManufacturer(deviceManufacturer.c_str());
+  hid->setPnp(0x02, vid, pid, version);
+  hid->setHidInfo(0x00, 0x01);
+#else
   hid->manufacturer()->setValue(deviceManufacturer);
-
   hid->pnp(0x02, vid, pid, version);
   hid->hidInfo(0x00, 0x01);
-
+#endif
 
 #if defined(USE_NIMBLE)
 
@@ -131,15 +148,27 @@ void BleKeyboard::begin(void)
 
 #endif // USE_NIMBLE
 
+#if defined(USE_NIMBLE)
+  hid->setReportMap((uint8_t*)_hidReportDescriptor, sizeof(_hidReportDescriptor));
+#else
   hid->reportMap((uint8_t*)_hidReportDescriptor, sizeof(_hidReportDescriptor));
+#endif
+
   hid->startServices();
 
   onStarted(pServer);
 
   advertising = pServer->getAdvertising();
   advertising->setAppearance(HID_KEYBOARD);
+
+#if defined(USE_NIMBLE)
+  advertising->addServiceUUID(hid->getHidService()->getUUID());
+  advertising->enableScanResponse(false);
+#else
   advertising->addServiceUUID(hid->hidService()->getUUID());
   advertising->setScanResponse(false);
+#endif
+
   advertising->start();
   hid->setBatteryLevel(batteryLevel);
 
@@ -500,41 +529,6 @@ size_t BleKeyboard::write(const uint8_t *buffer, size_t size) {
 	return n;
 }
 
-void BleKeyboard::onConnect(BLEServer* pServer) {
-  this->connected = true;
-
-#if !defined(USE_NIMBLE)
-
-  BLE2902* desc = (BLE2902*)this->inputKeyboard->getDescriptorByUUID(BLEUUID((uint16_t)0x2902));
-  desc->setNotifications(true);
-  desc = (BLE2902*)this->inputMediaKeys->getDescriptorByUUID(BLEUUID((uint16_t)0x2902));
-  desc->setNotifications(true);
-
-#endif // !USE_NIMBLE
-
-}
-
-void BleKeyboard::onDisconnect(BLEServer* pServer) {
-  this->connected = false;
-
-#if !defined(USE_NIMBLE)
-
-  BLE2902* desc = (BLE2902*)this->inputKeyboard->getDescriptorByUUID(BLEUUID((uint16_t)0x2902));
-  desc->setNotifications(false);
-  desc = (BLE2902*)this->inputMediaKeys->getDescriptorByUUID(BLEUUID((uint16_t)0x2902));
-  desc->setNotifications(false);
-
-  advertising->start();
-
-#endif // !USE_NIMBLE
-}
-
-void BleKeyboard::onWrite(BLECharacteristic* me) {
-  uint8_t* value = (uint8_t*)(me->getValue().c_str());
-  (void)value;
-  ESP_LOGI(LOG_TAG, "special keys: %d", *value);
-}
-
 void BleKeyboard::delay_ms(uint64_t ms) {
   uint64_t m = esp_timer_get_time();
   if(ms){
@@ -545,3 +539,39 @@ void BleKeyboard::delay_ms(uint64_t ms) {
     while(esp_timer_get_time() < e) {}
   }
 }
+
+#if defined(USE_NIMBLE)
+
+void BleKeyboard::onConnect(BLEServer* pServer, NimBLEConnInfo & connInfo) {
+  this->connected = true;
+}
+
+void BleKeyboard::onDisconnect(BLEServer* pServer, NimBLEConnInfo & connInfo, int reason) {
+  this->connected = false;
+
+  advertising->start();
+}
+
+void BleKeyboard::onWrite(BLECharacteristic* me, NimBLEConnInfo & connInfo) {
+  uint8_t* value = (uint8_t*)(me->getValue().c_str());
+  (void)value;
+  ESP_LOGI(LOG_TAG, "special keys: %d", *value);
+}
+
+#else
+
+void BleKeyboard::onConnect(BLEServer* pServer) {
+  this->connected = true;
+}
+
+void BleKeyboard::onDisconnect(BLEServer* pServer) {
+  this->connected = false;
+}
+
+void BleKeyboard::onWrite(BLECharacteristic* me) {
+  uint8_t* value = (uint8_t*)(me->getValue().c_str());
+  (void)value;
+  ESP_LOGI(LOG_TAG, "special keys: %d", *value);
+}
+
+#endif
