@@ -1,0 +1,8 @@
+model: gemini/gemini-2.0-flash
+api-key:
+- gemini=gemini_api_key
+- openrouter=openrouter_api_key
+
+auto-commits: false
+gitignore: false
+dark-mode: true
