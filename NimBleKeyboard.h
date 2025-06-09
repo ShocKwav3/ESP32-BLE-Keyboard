@@ -1,14 +1,14 @@
 #pragma once
 
-#include "BLEDevice.h"
-#include "BLEUtils.h"
-#include "BLEServer.h"
-#include "BLEHIDDevice.h"
-#include "BLECharacteristic.h"
-#include "BLE2902.h"
+#include "NimBLEDevice.h"
+#include "NimBLEHIDDevice.h"
+#include "NimBLECharacteristic.h"
+#include "NimBLEAdvertising.h"
+#include "NimBLEServer.h"
 #include "Print.h"
 #include "pgmspace.h"
 #include "HIDTypes.h"
+#include "esp_timer.h"
 
 #define KEYBOARD_ID 0x01
 #define MEDIA_KEYS_ID 0x02
@@ -306,25 +306,27 @@ static const uint8_t _hidReportDescriptor[] = {
   END_COLLECTION(0)                  // END_COLLECTION
 };
 
-class StandardBleKeyboard : public Print, public BLEServerCallbacks, public BLECharacteristicCallbacks {
+class NimBleKeyboard : public Print, public NimBLEServerCallbacks, public NimBLECharacteristicCallbacks {
 private:
-    BLEHIDDevice* hid;
-    BLECharacteristic* inputKeyboard;
-    BLECharacteristic* outputKeyboard;
-    BLECharacteristic* inputMediaKeys;
-    BLEAdvertising* advertising;
+    NimBLEHIDDevice* hid;
+    NimBLECharacteristic* inputKeyboard;
+    NimBLECharacteristic* outputKeyboard;
+    NimBLECharacteristic* inputMediaKeys;
+    NimBLEAdvertising* advertising;
     KeyReport _keyReport;
     MediaKeyReport _mediaKeyReport;
     String deviceName;
     String deviceManufacturer;
     uint8_t batteryLevel;
     bool connected = false;
+    uint32_t _delay_ms = 7;
     uint16_t vid = 0x05ac;
     uint16_t pid = 0x820a;
     uint16_t version = 0x0210;
+    void delay_ms(uint64_t ms);
 
 public:
-    StandardBleKeyboard(String deviceName = "ESP32 Keyboard", String deviceManufacturer = "Espressif", uint8_t batteryLevel = 100);
+    NimBleKeyboard(String deviceName = "ESP32 Keyboard", String deviceManufacturer = "Espressif", uint8_t batteryLevel = 100);
     void begin(void);
     void end(void);
     void sendReport(KeyReport* keys);
@@ -336,16 +338,17 @@ public:
     size_t write(uint8_t c);
     size_t write(const MediaKeyReport c);
     size_t write(const uint8_t *buffer, size_t size);
-    void releaseAll();
+    void releaseAll(void);
     bool isConnected(void);
     void setBatteryLevel(uint8_t level);
     void setName(String deviceName);
+    void setDelay(uint32_t ms);
     void set_vendor_id(uint16_t vid);
     void set_product_id(uint16_t pid);
     void set_version(uint16_t version);
 
 protected:
-    void onConnect(BLEServer* pServer) override;
-    void onDisconnect(BLEServer* pServer) override;
-    void onWrite(BLECharacteristic* me) override;
+    void onConnect(NimBLEServer* pServer, NimBLEConnInfo & connInfo) override;
+    void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo & connInfo, int reason) override;
+    void onWrite(NimBLECharacteristic* me, NimBLEConnInfo & connInfo) override;
 };
