@@ -1,4 +1,6 @@
 // NimbleKeyboard.cpp
+#if defined(USE_NIMBLE)
+
 #include "NimBleKeyboard.h"
 
 NimBleKeyboard::NimBleKeyboard(String name, String manufacturer, uint8_t battery)
@@ -243,3 +245,5 @@ void NimBleKeyboard::onDisconnect(NimBLEServer* pServer, NimBLEConnInfo & connIn
 void NimBleKeyboard::onWrite(NimBLECharacteristic* me, NimBLEConnInfo & connInfo) {
     // Not used
 }
+
+#endif
