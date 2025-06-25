@@ -12,6 +12,7 @@
 
 #define KEYBOARD_ID 0x01
 #define MEDIA_KEYS_ID 0x02
+#define MOUSE_ID 0x03
 #define SHIFT 0x80
 
 // HID Report Types
@@ -20,6 +21,15 @@ typedef struct {
     uint8_t reserved;
     uint8_t keys[6];
 } KeyReport;
+
+typedef struct
+{
+  uint8_t buttons; // Bitfield for button states (e.g., bit 0 for left, bit 1 for right)
+  int8_t x;        // Relative X movement
+  int8_t y;        // Relative Y movement
+  int8_t wheel;    // Relative vertical wheel movement
+  int8_t hWheel;  // Relative horizontal wheel movement
+} MouseReport;
 
 // ASCII to HID map
 const uint8_t _asciimap[128] PROGMEM = {
@@ -303,7 +313,46 @@ static const uint8_t _hidReportDescriptor[] = {
   USAGE(2),           0x83, 0x01,    //   Usage (Media sel)   ; bit 6: 64
   USAGE(2),           0x8A, 0x01,    //   Usage (Mail)        ; bit 7: 128
   HIDINPUT(1),        0x02,          //   INPUT (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-  END_COLLECTION(0)                  // END_COLLECTION
+  END_COLLECTION(0),                 // END_COLLECTION
+  // ------------------------------------------------- Mouse
+  USAGE_PAGE(1),      0x01,          // USAGE_PAGE (Generic Desktop Ctrls)
+  USAGE(1),           0x02,          // USAGE (Mouse)
+  COLLECTION(1),      0x01,          // COLLECTION (Application)
+  REPORT_ID(1),       MOUSE_ID,      //   REPORT_ID (0x03 for Mouse)
+  USAGE(1),           0x01,          //   USAGE (Pointer)
+  COLLECTION(1),      0x00,          //   COLLECTION (Physical)
+  USAGE_PAGE(1),      0x09,          //     USAGE_PAGE (Button)
+  USAGE_MINIMUM(1),   0x01,          //     USAGE_MINIMUM (Button 1)
+  USAGE_MAXIMUM(1),   0x03,          //     USAGE_MAXIMUM (Button 3)
+  LOGICAL_MINIMUM(1), 0x00,          //     LOGICAL_MINIMUM (0)
+  LOGICAL_MAXIMUM(1), 0x01,          //     LOGICAL_MAXIMUM (1)
+  REPORT_SIZE(1),     0x01,          //     REPORT_SIZE (1)
+  REPORT_COUNT(1),    0x03,          //     REPORT_COUNT (3) ; 3 buttons
+  HIDINPUT(1),        0x02,          //     INPUT (Data,Var,Abs)
+  REPORT_COUNT(1),    0x01,          //     REPORT_COUNT (1) ; 5 bits padding
+  REPORT_SIZE(1),     0x05,          //     REPORT_SIZE (5)
+  HIDINPUT(1),        0x01,          //     INPUT (Const,Array,Abs) ; padding (changed from 0x03 to 0x01 for clarity)
+
+  USAGE_PAGE(1),      0x01,          //     USAGE_PAGE (Generic Desktop Ctrls)
+  USAGE(1),           0x30,          //     USAGE (X)
+  USAGE(1),           0x31,          //     USAGE (Y)
+  USAGE(1),           0x38,          //     USAGE (Wheel) // Vertical scroll wheel
+  LOGICAL_MINIMUM(1), 0x81,          //     LOGICAL_MINIMUM (-127) // Signed byte range
+  LOGICAL_MAXIMUM(1), 0x7F,          //     LOGICAL_MAXIMUM (127)
+  REPORT_SIZE(1),     0x08,          //     REPORT_SIZE (8) ; 8 bits for X, Y, Wheel
+  REPORT_COUNT(1),    0x03,          //     REPORT_COUNT (3) ; X, Y, Wheel
+  HIDINPUT(1),        0x06,          //     INPUT (Data,Var,Rel) ; Relative movement
+
+  USAGE_PAGE(1),      0x0C,          //     USAGE PAGE (Consumer Devices)
+  USAGE(2),           0x38, 0x02,    //     USAGE (AC Pan) / Horizontal Scroll Wheel (0x0C 0x0238)
+  LOGICAL_MINIMUM(1), 0x81,          //     LOGICAL_MINIMUM (-127)
+  LOGICAL_MAXIMUM(1), 0x7F,          //     LOGICAL_MAXIMUM (127)
+  REPORT_SIZE(1),     0x08,          //     REPORT_SIZE (8)
+  REPORT_COUNT(1),    0x01,          //     REPORT_COUNT (1)
+  HIDINPUT(1),        0x06,          //     INPUT (Data, Var, Rel)
+
+  END_COLLECTION(0),                 //   END_COLLECTION (Physical)
+  END_COLLECTION(0)                  // END_COLLECTION (Application)
 };
 
 class NimBleKeyboard : public Print, public NimBLEServerCallbacks, public NimBLECharacteristicCallbacks {
@@ -312,9 +361,11 @@ private:
     NimBLECharacteristic* inputKeyboard;
     NimBLECharacteristic* outputKeyboard;
     NimBLECharacteristic* inputMediaKeys;
+	BLECharacteristic* inputMouse;
     NimBLEAdvertising* advertising;
     KeyReport _keyReport;
     MediaKeyReport _mediaKeyReport;
+	MouseReport _mouseReport;
     String deviceName;
     String deviceManufacturer;
     uint8_t batteryLevel;
@@ -331,6 +382,7 @@ public:
     void end(void);
     void sendReport(KeyReport* keys);
     void sendReport(MediaKeyReport* keys);
+	void sendReport(MouseReport* mouse);
     size_t press(uint8_t k);
     size_t press(const MediaKeyReport k);
     size_t release(uint8_t k);
@@ -338,6 +390,7 @@ public:
     size_t write(uint8_t c);
     size_t write(const MediaKeyReport c);
     size_t write(const uint8_t *buffer, size_t size);
+	void mouseMove(int8_t x, int8_t y, int8_t wheel = 0, int8_t hWheel = 0);
     void releaseAll(void);
     bool isConnected(void);
     void setBatteryLevel(uint8_t level);
