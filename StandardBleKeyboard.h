@@ -28,6 +28,7 @@ typedef struct
   int8_t x;        // Relative X movement
   int8_t y;        // Relative Y movement
   int8_t wheel;    // Relative vertical wheel movement
+  int8_t hWheel;  // Relative horizontal wheel movement
 } MouseReport;
 
 // ASCII to HID map
@@ -342,6 +343,14 @@ static const uint8_t _hidReportDescriptor[] = {
   REPORT_COUNT(1),    0x03,          //     REPORT_COUNT (3) ; X, Y, Wheel
   HIDINPUT(1),        0x06,          //     INPUT (Data,Var,Rel) ; Relative movement
 
+  USAGE_PAGE(1),      0x0C,          //     USAGE PAGE (Consumer Devices)
+  USAGE(2),           0x38, 0x02,    //     USAGE (AC Pan) / Horizontal Scroll Wheel (0x0C 0x0238)
+  LOGICAL_MINIMUM(1), 0x81,          //     LOGICAL_MINIMUM (-127)
+  LOGICAL_MAXIMUM(1), 0x7F,          //     LOGICAL_MAXIMUM (127)
+  REPORT_SIZE(1),     0x08,          //     REPORT_SIZE (8)
+  REPORT_COUNT(1),    0x01,          //     REPORT_COUNT (1)
+  HIDINPUT(1),        0x06,          //     INPUT (Data, Var, Rel)
+
   END_COLLECTION(0),                 //   END_COLLECTION (Physical)
   END_COLLECTION(0)                  // END_COLLECTION (Application)
 };
@@ -379,7 +388,7 @@ public:
     size_t write(uint8_t c);
     size_t write(const MediaKeyReport c);
     size_t write(const uint8_t *buffer, size_t size);
-	void mouseMove(int8_t x, int8_t y, int8_t wheel = 0);
+	void mouseMove(int8_t x, int8_t y, int8_t wheel = 0, int8_t hWheel = 0);
     void releaseAll();
     bool isConnected(void);
     void setBatteryLevel(uint8_t level);

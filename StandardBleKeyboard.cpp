@@ -85,16 +85,18 @@ void StandardBleKeyboard::sendReport(MouseReport* mouse)
 	}
 }
 
-void StandardBleKeyboard::mouseMove(int8_t x, int8_t y, int8_t wheel) {
+void StandardBleKeyboard::mouseMove(int8_t x, int8_t y, int8_t wheel, int8_t hWheel) {
     _mouseReport.x = x;
     _mouseReport.y = y;
     _mouseReport.wheel = wheel;
+    _mouseReport.hWheel = hWheel;
 
     sendReport(&_mouseReport);
 
     _mouseReport.x = 0;
     _mouseReport.y = 0;
     _mouseReport.wheel = 0;
+    _mouseReport.hWheel = 0;
 }
 
 // press() adds the specified key (printing, non-printing, or modifier)
