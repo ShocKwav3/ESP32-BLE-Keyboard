@@ -1,6 +1,12 @@
 # Purpose of this fork
 
-The original library is not maintained anymore. Working with it leads to numerous compile errors. Those are addressed in this fork, like many others out there. I use this with my projects that I make using platformIO. So, I needed to host the changed code somewhere and track the changes. Hence this fork. Probably add some more changes along the way as need arises.
+The original library is not maintained anymore. Working with it leads to numerous compile errors. Those are addressed in this fork, like many others out there. I use this with my projects that I make using platformIO. So, I needed to host the changed code somewhere and track the changes. Hence this fork.
+
+Added vertical and horizontal scrolling capabilities, as a mouse. I know there is another library for this. The device I am making requires both mouse and keyboard. So, needed this scrolling capability. Took inspiration (and some code :p) from the ESP32-BLE-Mouse library.
+
+Ideally, maybe, could've keep the mouse library separate and make a composite device class to make them work together. Too much effort and do not have the time. Mouse clicks can be implemented too, should be simple. Maybe turn this into "composite" device instead of a keyboard...
+
+Probably will add (or not) some more changes along the way as need arises.
 
 
 # ESP32 BLE Keyboard library
