@@ -1,4 +1,3 @@
-// NimbleKeyboard.cpp
 #if defined(USE_NIMBLE)
 
 #include "NimBleKeyboard.h"

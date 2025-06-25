@@ -31,9 +31,9 @@ const uint8_t _asciimap[128] PROGMEM = {
 	0x00,             // ENQ
 	0x00,             // ACK
 	0x00,             // BEL
-	0x2a,			// BS	Backspace
-	0x2b,			// TAB	Tab
-	0x28,			// LF	Enter
+	0x2a,			  // BS		Backspace
+	0x2b,			  // TAB	Tab
+	0x28,			  // LF		Enter
 	0x00,             // VT
 	0x00,             // FF
 	0x00,             // CR
@@ -82,9 +82,9 @@ const uint8_t _asciimap[128] PROGMEM = {
 	0x24,          // 7
 	0x25,          // 8
 	0x26,          // 9
-	0x33|SHIFT,      // :
+	0x33|SHIFT,    // :
 	0x33,          // ;
-	0x36|SHIFT,      // <
+	0x36|SHIFT,    // <
 	0x2e,          // =
 	0x37|SHIFT,      // >
 	0x38|SHIFT,      // ?
@@ -151,7 +151,7 @@ const uint8_t _asciimap[128] PROGMEM = {
 	0x31|SHIFT,    // |
 	0x30|SHIFT,    // }
 	0x35|SHIFT,    // ~
-	0				// DEL
+	0			   // DEL
 };
 
 const uint8_t KEY_LEFT_CTRL = 0x80;
