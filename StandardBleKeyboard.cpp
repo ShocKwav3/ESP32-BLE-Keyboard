@@ -1,4 +1,3 @@
-// StandardBleKeyboard.cpp
 #include "StandardBleKeyboard.h"
 
 StandardBleKeyboard::StandardBleKeyboard(String name, String manufacturer, uint8_t battery)
@@ -13,6 +12,7 @@ void StandardBleKeyboard::begin() {
     inputKeyboard = hid->inputReport(KEYBOARD_ID);
     outputKeyboard = hid->outputReport(KEYBOARD_ID);
     inputMediaKeys = hid->inputReport(MEDIA_KEYS_ID);
+	inputMouse = hid->inputReport(MOUSE_ID);
 
     outputKeyboard->setCallbacks(this);
 
@@ -74,6 +74,29 @@ void StandardBleKeyboard::sendReport(MediaKeyReport* keys) {
         inputMediaKeys->setValue((uint8_t*)keys, sizeof(MediaKeyReport));
         inputMediaKeys->notify();
     }
+}
+
+void StandardBleKeyboard::sendReport(MouseReport* mouse)
+{
+	if (this->isConnected())
+	{
+		inputMouse->setValue((uint8_t*)mouse, sizeof(MouseReport));
+		inputMouse->notify();
+	}
+}
+
+void StandardBleKeyboard::mouseMove(int8_t x, int8_t y, int8_t wheel, int8_t hWheel) {
+    _mouseReport.x = x;
+    _mouseReport.y = y;
+    _mouseReport.wheel = wheel;
+    _mouseReport.hWheel = hWheel;
+
+    sendReport(&_mouseReport);
+
+    _mouseReport.x = 0;
+    _mouseReport.y = 0;
+    _mouseReport.wheel = 0;
+    _mouseReport.hWheel = 0;
 }
 
 // press() adds the specified key (printing, non-printing, or modifier)

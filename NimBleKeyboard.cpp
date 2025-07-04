@@ -1,4 +1,3 @@
-// NimbleKeyboard.cpp
 #if defined(USE_NIMBLE)
 
 #include "NimBleKeyboard.h"
@@ -15,6 +14,7 @@ void NimBleKeyboard::begin() {
     inputKeyboard = hid->getInputReport(KEYBOARD_ID);
     outputKeyboard = hid->getOutputReport(KEYBOARD_ID);
     inputMediaKeys = hid->getInputReport(MEDIA_KEYS_ID);
+	inputMouse = hid->getInputReport(MOUSE_ID);
 
     outputKeyboard->setCallbacks(this);
 
@@ -86,6 +86,29 @@ void NimBleKeyboard::sendReport(MediaKeyReport* keys) {
 
         delay_ms(_delay_ms);
     }
+}
+
+void NimBleKeyboard::sendReport(MouseReport* mouse)
+{
+	if (this->isConnected())
+	{
+		inputMouse->setValue((uint8_t*)mouse, sizeof(MouseReport));
+		inputMouse->notify();
+	}
+}
+
+void NimBleKeyboard::mouseMove(int8_t x, int8_t y, int8_t wheel, int8_t hWheel) {
+    _mouseReport.x = x;
+    _mouseReport.y = y;
+    _mouseReport.wheel = wheel;
+    _mouseReport.hWheel = hWheel;
+
+    sendReport(&_mouseReport);
+
+    _mouseReport.x = 0;
+    _mouseReport.y = 0;
+    _mouseReport.wheel = 0;
+    _mouseReport.hWheel = 0;
 }
 
 size_t NimBleKeyboard::press(uint8_t k) {
