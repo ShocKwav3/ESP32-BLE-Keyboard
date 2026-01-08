@@ -356,7 +356,192 @@ static const uint8_t _hidReportDescriptor[] = {
 };
 
 class NimBleKeyboard : public Print, public NimBLEServerCallbacks, public NimBLECharacteristicCallbacks {
+public:
+    // Callback typedefs for connection state changes
+    typedef void (*ConnectCallback)();
+    typedef void (*DisconnectCallback)(int reason);
+    /**
+     * @brief Construct a new BLE Keyboard object
+     * @param deviceName The BLE device name (default: "BLE Keyboard")
+     * @param deviceManufacturer The manufacturer name (default: "Generic")
+     * @param batteryLevel Initial battery level 0-100 (default: 100)
+     */
+    NimBleKeyboard(String deviceName = "BLE Keyboard", String deviceManufacturer = "Generic", uint8_t batteryLevel = 100);
+
+    /**
+     * @brief Initialize and start the BLE keyboard
+     * Initializes BLE stack, HID device, and starts advertising
+     */
+    void begin(void);
+
+    /**
+     * @brief Stop the BLE keyboard and deinitialize the BLE stack
+     * Stops advertising and disconnects any connected devices
+     */
+    void end(void);
+
+    /**
+     * @brief Send a keyboard HID report
+     * @param keys Pointer to KeyReport structure containing key states
+     */
+    void sendReport(KeyReport* keys);
+
+    /**
+     * @brief Send a media keys HID report
+     * @param keys Pointer to MediaKeyReport containing media key states
+     */
+    void sendReport(MediaKeyReport* keys);
+
+    /**
+     * @brief Send a mouse HID report
+     * @param mouse Pointer to MouseReport containing mouse state
+     */
+	void sendReport(MouseReport* mouse);
+
+    /**
+     * @brief Press a key and send the report
+     * @param k Key code to press (ASCII or special key constant)
+     * @return Number of keys successfully pressed (1 on success, 0 on failure)
+     */
+    size_t press(uint8_t k);
+
+    /**
+     * @brief Press a media key and send the report
+     * @param k Media key constant to press
+     * @return Number of keys successfully pressed (1 on success, 0 on failure)
+     */
+    size_t press(const MediaKeyReport k);
+
+    /**
+     * @brief Release a key and send the report
+     * @param k Key code to release (ASCII or special key constant)
+     * @return Number of keys successfully released (1 on success, 0 on failure)
+     */
+    size_t release(uint8_t k);
+
+    /**
+     * @brief Release a media key and send the report
+     * @param k Media key constant to release
+     * @return Number of keys successfully released (1 on success, 0 on failure)
+     */
+    size_t release(const MediaKeyReport k);
+
+    /**
+     * @brief Type a character (press and release)
+     * @param c Character to type (ASCII)
+     * @return Number of characters successfully typed (1 on success, 0 on failure)
+     */
+    size_t write(uint8_t c);
+
+    /**
+     * @brief Type a media key (press and release)
+     * @param c Media key constant to type
+     * @return Number of keys successfully typed (1 on success, 0 on failure)
+     */
+    size_t write(const MediaKeyReport c);
+
+    /**
+     * @brief Type multiple characters from a buffer
+     * @param buffer Pointer to character buffer
+     * @param size Number of characters to type
+     * @return Number of characters successfully typed
+     */
+    size_t write(const uint8_t *buffer, size_t size);
+
+    /**
+     * @brief Move the mouse and/or scroll
+     * @param x Relative X movement (-127 to 127)
+     * @param y Relative Y movement (-127 to 127)
+     * @param wheel Vertical scroll amount (-127 to 127, default: 0)
+     * @param hWheel Horizontal scroll amount (-127 to 127, default: 0)
+     */
+	void mouseMove(int8_t x, int8_t y, int8_t wheel = 0, int8_t hWheel = 0);
+
+    /**
+     * @brief Release all pressed keys and media keys
+     * Clears all key states and sends empty reports
+     */
+    void releaseAll(void);
+
+    /**
+     * @brief Check if a device is currently connected
+     * @return true if connected, false otherwise
+     */
+    bool isConnected(void);
+
+    /**
+     * @brief Set the battery level
+     * @param level Battery level 0-100
+     */
+    void setBatteryLevel(uint8_t level);
+
+    /**
+     * @brief Set the device name (must be called before begin())
+     * @param deviceName The BLE device name
+     */
+    void setName(String deviceName);
+
+    /**
+     * @brief Set the delay between HID reports
+     * @param ms Delay in milliseconds (default: 7ms)
+     */
+    void setDelay(uint32_t ms);
+
+    /**
+     * @brief Set the USB vendor ID (must be called before begin())
+     * @param vid Vendor ID (default: 0x05ac - Apple)
+     */
+    void set_vendor_id(uint16_t vid);
+
+    /**
+     * @brief Set the USB product ID (must be called before begin())
+     * @param pid Product ID (default: 0x820a)
+     */
+    void set_product_id(uint16_t pid);
+
+    /**
+     * @brief Set the device version (must be called before begin())
+     * @param version Version number (default: 0x0210)
+     */
+    void set_version(uint16_t version);
+
+    /**
+     * @brief Set callback for BLE connection events
+     * @param callback Function to call when a device connects
+     *                 Called from BLE stack context - keep execution time < 10ms
+     *                 Safe: Send to FreeRTOS queue, set flags
+     *                 Unsafe: Blocking operations, direct display access
+     */
+    void setOnConnect(ConnectCallback callback);
+
+    /**
+     * @brief Set callback for BLE disconnection events
+     * @param callback Function to call when a device disconnects
+     *                 Receives disconnect reason code
+     *                 Called from BLE stack context - keep execution time < 10ms
+     */
+    void setOnDisconnect(DisconnectCallback callback);
+
+    /**
+     * @brief Disconnect the currently connected device
+     * Keeps BLE stack running and advertising active
+     */
+    void disconnect();
+
+    /**
+     * @brief Start BLE advertising (enter pairing mode)
+     * Makes the device discoverable for new connections
+     */
+    void startAdvertising();
+
+    /**
+     * @brief Stop BLE advertising
+     * Prevents new devices from discovering and connecting
+     */
+    void stopAdvertising();
+
 private:
+    NimBLEServer* pServer;
     NimBLEHIDDevice* hid;
     NimBLECharacteristic* inputKeyboard;
     NimBLECharacteristic* outputKeyboard;
@@ -370,35 +555,27 @@ private:
     String deviceManufacturer;
     uint8_t batteryLevel;
     bool connected = false;
+    bool initialized = false;
     uint32_t _delay_ms = 7;
     uint16_t vid = 0x05ac;
     uint16_t pid = 0x820a;
     uint16_t version = 0x0210;
+    uint16_t connHandle = 0;  // Connection handle for disconnect
+
+    // User-provided callbacks for connection state changes
+    ConnectCallback onConnectCallback = nullptr;
+    DisconnectCallback onDisconnectCallback = nullptr;
+
     void delay_ms(uint64_t ms);
 
-public:
-    NimBleKeyboard(String deviceName = "ESP32 Keyboard", String deviceManufacturer = "Espressif", uint8_t batteryLevel = 100);
-    void begin(void);
-    void end(void);
-    void sendReport(KeyReport* keys);
-    void sendReport(MediaKeyReport* keys);
-	void sendReport(MouseReport* mouse);
-    size_t press(uint8_t k);
-    size_t press(const MediaKeyReport k);
-    size_t release(uint8_t k);
-    size_t release(const MediaKeyReport k);
-    size_t write(uint8_t c);
-    size_t write(const MediaKeyReport c);
-    size_t write(const uint8_t *buffer, size_t size);
-	void mouseMove(int8_t x, int8_t y, int8_t wheel = 0, int8_t hWheel = 0);
-    void releaseAll(void);
-    bool isConnected(void);
-    void setBatteryLevel(uint8_t level);
-    void setName(String deviceName);
-    void setDelay(uint32_t ms);
-    void set_vendor_id(uint16_t vid);
-    void set_product_id(uint16_t pid);
-    void set_version(uint16_t version);
+    NimBLEServer* initializeBleDevice();
+    void setupHidDevice(NimBLEServer* pServer);
+    void configureHidProperties();
+    void configureSecurity();
+    void setupReportMapAndServices();
+    void setupAdvertising(NimBLEServer* pServer);
+    void finalizeBleSetup();
+    void deinitializeBleStack();
 
 protected:
     void onConnect(NimBLEServer* pServer, NimBLEConnInfo & connInfo) override;

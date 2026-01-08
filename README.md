@@ -4,6 +4,13 @@ The original library is not maintained anymore. Working with it leads to numerou
 
 Added vertical and horizontal scrolling capabilities, as a mouse. I know there is another library for this. The device I am making requires both mouse and keyboard. So, needed this scrolling capability. Took inspiration (and some code :p) from the ESP32-BLE-Mouse library.
 
+**New additions:**
+- **Connection callbacks**: Added `setOnConnect()` and `setOnDisconnect()` methods to register callbacks for connection state changes
+- **Advertising control**: Added `startAdvertising()` and `stopAdvertising()` methods for manual control over BLE advertising
+- **Manual disconnect**: Added `disconnect()` method to programmatically disconnect connected devices
+- **Proper BLE shutdown**: Implemented `end()` method to properly deinitialize the BLE stack and free resources
+- **Documentation**: Added comprehensive API documentation to header files
+
 Ideally, maybe, could've keep the mouse library separate and make a composite device class to make them work together. Too much effort and do not have the time. Mouse clicks can be implemented too, should be simple. Maybe turn this into "composite" device instead of a keyboard...
 
 Probably will add (or not) some more changes along the way as need arises.

@@ -3,40 +3,106 @@
 #include "NimBleKeyboard.h"
 
 NimBleKeyboard::NimBleKeyboard(String name, String manufacturer, uint8_t battery)
-    : deviceName(name), deviceManufacturer(manufacturer), batteryLevel(battery) {}
+    : deviceName(name), deviceManufacturer(manufacturer), batteryLevel(battery) {
+    // Initialize report structures to zero
+    memset(&_keyReport, 0, sizeof(KeyReport));
+    memset(&_mediaKeyReport, 0, sizeof(MediaKeyReport));
+    memset(&_mouseReport, 0, sizeof(MouseReport));
+}
 
-void NimBleKeyboard::begin() {
+NimBLEServer* NimBleKeyboard::initializeBleDevice() {
     NimBLEDevice::init(deviceName.c_str());
     NimBLEServer* pServer = NimBLEDevice::createServer();
     pServer->setCallbacks(this);
 
+    return pServer;
+}
+
+void NimBleKeyboard::setupHidDevice(NimBLEServer* pServer) {
     hid = new NimBLEHIDDevice(pServer);
     inputKeyboard = hid->getInputReport(KEYBOARD_ID);
     outputKeyboard = hid->getOutputReport(KEYBOARD_ID);
     inputMediaKeys = hid->getInputReport(MEDIA_KEYS_ID);
-	inputMouse = hid->getInputReport(MOUSE_ID);
-
+    inputMouse = hid->getInputReport(MOUSE_ID);
     outputKeyboard->setCallbacks(this);
+}
 
+void NimBleKeyboard::configureHidProperties() {
     hid->setManufacturer(deviceManufacturer.c_str());
     hid->setPnp(0x02, vid, pid, version);
     hid->setHidInfo(0x00, 0x01);
+}
 
+void NimBleKeyboard::configureSecurity() {
     NimBLEDevice::setSecurityAuth(true, true, true);
+}
 
+void NimBleKeyboard::setupReportMapAndServices() {
     hid->setReportMap((uint8_t*)_hidReportDescriptor, sizeof(_hidReportDescriptor));
     hid->startServices();
+}
 
+void NimBleKeyboard::setupAdvertising(NimBLEServer* pServer) {
     advertising = pServer->getAdvertising();
     advertising->setAppearance(HID_KEYBOARD);
     advertising->addServiceUUID(hid->getHidService()->getUUID());
     advertising->enableScanResponse(false);
     advertising->start();
+}
+
+void NimBleKeyboard::finalizeBleSetup() {
+    initialized = true;
 
     hid->setBatteryLevel(batteryLevel);
 }
 
-void NimBleKeyboard::end() {}
+void NimBleKeyboard::begin() {
+    if (initialized) {
+        return;
+    }
+
+    pServer = initializeBleDevice();
+    setupHidDevice(pServer);
+    configureHidProperties();
+    configureSecurity();
+    setupReportMapAndServices();
+    setupAdvertising(pServer);
+    finalizeBleSetup();
+}
+
+void NimBleKeyboard::stopAdvertising() {
+    if (advertising) {
+        advertising->stop();
+    }
+}
+
+void NimBleKeyboard::startAdvertising() {
+    if (advertising) {
+        advertising->start();
+    }
+}
+
+void NimBleKeyboard::disconnect() {
+    if (pServer && connected && connHandle != 0) {
+        pServer->disconnect(connHandle);
+    }
+}
+
+void NimBleKeyboard::deinitializeBleStack() {
+    connected = false;
+    initialized = false;
+
+    NimBLEDevice::deinit(true);
+}
+
+void NimBleKeyboard::end() {
+    if (!initialized) {
+        return;
+    }
+
+    stopAdvertising();
+    deinitializeBleStack();
+}
 
 bool NimBleKeyboard::isConnected() {
     return connected;
@@ -256,13 +322,32 @@ void NimBleKeyboard::delay_ms(uint64_t ms) {
   }
 }
 
+void NimBleKeyboard::setOnConnect(ConnectCallback callback) {
+    onConnectCallback = callback;
+}
+
+void NimBleKeyboard::setOnDisconnect(DisconnectCallback callback) {
+    onDisconnectCallback = callback;
+}
+
 void NimBleKeyboard::onConnect(NimBLEServer* pServer, NimBLEConnInfo & connInfo) {
     connected = true;
+    connHandle = connInfo.getConnHandle();  // Store connection handle for disconnect
+
+    // Invoke user callback if registered (defensive null check)
+    if (onConnectCallback != nullptr) {
+        onConnectCallback();
+    }
 }
 
 void NimBleKeyboard::onDisconnect(NimBLEServer* pServer, NimBLEConnInfo & connInfo, int reason) {
     connected = false;
-    advertising->start();
+    connHandle = 0;  // Clear connection handle
+
+    // Invoke user callback if registered (defensive null check)
+    if (onDisconnectCallback != nullptr) {
+        onDisconnectCallback(reason);
+    }
 }
 
 void NimBleKeyboard::onWrite(NimBLECharacteristic* me, NimBLEConnInfo & connInfo) {

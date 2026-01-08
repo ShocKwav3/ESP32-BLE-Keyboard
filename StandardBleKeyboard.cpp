@@ -1,41 +1,110 @@
 #include "StandardBleKeyboard.h"
+#include "esp_bt_main.h"
+#include "esp_gap_ble_api.h"
+#include "esp_gatts_api.h"
 
 StandardBleKeyboard::StandardBleKeyboard(String name, String manufacturer, uint8_t battery)
-    : deviceName(name), deviceManufacturer(manufacturer), batteryLevel(battery) {}
+    : deviceName(name), deviceManufacturer(manufacturer), batteryLevel(battery) {
+    // Initialize report structures to zero
+    memset(&_keyReport, 0, sizeof(KeyReport));
+    memset(&_mediaKeyReport, 0, sizeof(MediaKeyReport));
+    memset(&_mouseReport, 0, sizeof(MouseReport));
+}
 
-void StandardBleKeyboard::begin() {
+BLEServer* StandardBleKeyboard::initializeBleDevice() {
     BLEDevice::init(deviceName);
     BLEServer* pServer = BLEDevice::createServer();
     pServer->setCallbacks(this);
 
+    return pServer;
+}
+
+void StandardBleKeyboard::setupHidDevice(BLEServer* pServer) {
     hid = new BLEHIDDevice(pServer);
     inputKeyboard = hid->inputReport(KEYBOARD_ID);
     outputKeyboard = hid->outputReport(KEYBOARD_ID);
     inputMediaKeys = hid->inputReport(MEDIA_KEYS_ID);
-	inputMouse = hid->inputReport(MOUSE_ID);
-
+    inputMouse = hid->inputReport(MOUSE_ID);
     outputKeyboard->setCallbacks(this);
+}
 
+void StandardBleKeyboard::configureHidProperties() {
     hid->manufacturer()->setValue(deviceManufacturer);
     hid->pnp(0x02, vid, pid, version);
     hid->hidInfo(0x00, 0x01);
+}
 
+void StandardBleKeyboard::configureSecurity() {
     BLESecurity* pSecurity = new BLESecurity();
     pSecurity->setAuthenticationMode(ESP_LE_AUTH_BOND);
+}
 
+void StandardBleKeyboard::setupReportMapAndServices() {
     hid->reportMap((uint8_t*)_hidReportDescriptor, sizeof(_hidReportDescriptor));
     hid->startServices();
+}
 
+void StandardBleKeyboard::setupAdvertising(BLEServer* pServer) {
     advertising = pServer->getAdvertising();
     advertising->setAppearance(HID_KEYBOARD);
     advertising->addServiceUUID(hid->hidService()->getUUID());
     advertising->setScanResponse(false);
     advertising->start();
+}
+
+void StandardBleKeyboard::finalizeBleSetup() {
+    initialized = true;
 
     hid->setBatteryLevel(batteryLevel);
 }
 
-void StandardBleKeyboard::end() {}
+void StandardBleKeyboard::begin() {
+    if (initialized) {
+        return;
+    }
+
+    pServer = initializeBleDevice();
+    setupHidDevice(pServer);
+    configureHidProperties();
+    configureSecurity();
+    setupReportMapAndServices();
+    setupAdvertising(pServer);
+    finalizeBleSetup();
+}
+
+void StandardBleKeyboard::stopAdvertising() {
+    if (advertising) {
+        advertising->stop();
+    }
+}
+
+void StandardBleKeyboard::startAdvertising() {
+    if (advertising) {
+        advertising->start();
+    }
+}
+
+void StandardBleKeyboard::disconnect() {
+    if (pServer && connected) {
+        pServer->disconnect(pServer->getConnId());
+    }
+}
+
+void StandardBleKeyboard::deinitializeBleStack() {
+    connected = false;
+    initialized = false;
+
+    BLEDevice::deinit(true);
+}
+
+void StandardBleKeyboard::end() {
+    if (!initialized) {
+        return;
+    }
+
+    stopAdvertising();
+    deinitializeBleStack();
+}
 
 bool StandardBleKeyboard::isConnected() {
     return connected;
@@ -240,13 +309,31 @@ size_t StandardBleKeyboard::write(const uint8_t *buffer, size_t size) {
 	return n;
 }
 
+void StandardBleKeyboard::setOnConnect(ConnectCallback callback) {
+    onConnectCallback = callback;
+}
+
+void StandardBleKeyboard::setOnDisconnect(DisconnectCallback callback) {
+    onDisconnectCallback = callback;
+}
+
 void StandardBleKeyboard::onConnect(BLEServer* pServer) {
     connected = true;
+
+    // Invoke user callback if registered (defensive null check)
+    if (onConnectCallback != nullptr) {
+        onConnectCallback();
+    }
 }
 
 void StandardBleKeyboard::onDisconnect(BLEServer* pServer) {
     connected = false;
-    advertising->start();
+
+    // Invoke user callback if registered (defensive null check)
+    // Note: Standard BLE doesn't provide disconnect reason, pass 0
+    if (onDisconnectCallback != nullptr) {
+        onDisconnectCallback(0);
+    }
 }
 
 void StandardBleKeyboard::onWrite(BLECharacteristic* me) {
