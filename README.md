@@ -8,6 +8,7 @@ Added vertical and horizontal scrolling capabilities, as a mouse. I know there i
 - **Connection callbacks**: Added `setOnConnect()` and `setOnDisconnect()` methods to register callbacks for connection state changes
 - **Advertising control**: Added `startAdvertising()` and `stopAdvertising()` methods for manual control over BLE advertising
 - **Manual disconnect**: Added `disconnect()` method to programmatically disconnect connected devices
+- **Bond management**: Added `clearBonds()` method to clear all bonded devices from NVS storage, enabling fresh pairing with a new device without auto-reconnect from previously paired devices
 - **Proper BLE shutdown**: Implemented `end()` method to properly deinitialize the BLE stack and free resources
 - **Documentation**: Added comprehensive API documentation to header files
 
