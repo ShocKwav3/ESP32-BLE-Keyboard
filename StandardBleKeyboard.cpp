@@ -2,6 +2,7 @@
 #include "esp_bt_main.h"
 #include "esp_gap_ble_api.h"
 #include "esp_gatts_api.h"
+#include "esp_bt_device.h"
 
 StandardBleKeyboard::StandardBleKeyboard(String name, String manufacturer, uint8_t battery)
     : deviceName(name), deviceManufacturer(manufacturer), batteryLevel(battery) {
@@ -75,6 +76,31 @@ void StandardBleKeyboard::begin() {
 void StandardBleKeyboard::stopAdvertising() {
     if (advertising) {
         advertising->stop();
+    }
+}
+
+void StandardBleKeyboard::clearBonds() {
+    if (initialized) {
+        // Get the number of bonded devices
+        int dev_num = esp_ble_get_bond_device_num();
+
+        if (dev_num > 0) {
+            // Allocate memory for the bonded device list
+            esp_ble_bond_dev_t *dev_list = (esp_ble_bond_dev_t *)malloc(sizeof(esp_ble_bond_dev_t) * dev_num);
+
+            if (dev_list != NULL) {
+                // Get the list of all bonded devices
+                esp_ble_get_bond_device_list(&dev_num, dev_list);
+
+                // Remove each bonded device
+                for (int i = 0; i < dev_num; i++) {
+                    esp_ble_remove_bond_device(dev_list[i].bd_addr);
+                }
+
+                // Free allocated memory
+                free(dev_list);
+            }
+        }
     }
 }
 

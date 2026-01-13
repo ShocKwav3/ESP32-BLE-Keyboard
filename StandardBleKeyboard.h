@@ -534,6 +534,18 @@ public:
      */
     void stopAdvertising();
 
+    /**
+     * @brief Clear all bonded devices from NVS storage
+     *
+     * Deletes stored bonding keys to force fresh pairing.
+     * Use case: User wants to pair with a NEW device and prevent
+     * auto-reconnect from previously bonded devices.
+     *
+     * Note: This affects ALL bonded devices.
+     * Must be called when BLE is initialized.
+     */
+    void clearBonds();
+
 private:
     BLEServer* pServer;
     BLEHIDDevice* hid;
