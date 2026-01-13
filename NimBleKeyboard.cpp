@@ -76,6 +76,12 @@ void NimBleKeyboard::stopAdvertising() {
     }
 }
 
+void NimBleKeyboard::clearBonds() {
+    if (initialized) {
+        int result = NimBLEDevice::deleteAllBonds();
+    }
+}
+
 void NimBleKeyboard::startAdvertising() {
     if (advertising) {
         advertising->start();
