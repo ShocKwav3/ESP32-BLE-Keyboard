@@ -1,3 +1,5 @@
+#if !defined(USE_NIMBLE)
+
 #include "StandardBleKeyboard.h"
 #include "esp_bt_main.h"
 #include "esp_gap_ble_api.h"
@@ -365,3 +367,5 @@ void StandardBleKeyboard::onDisconnect(BLEServer* pServer) {
 void StandardBleKeyboard::onWrite(BLECharacteristic* me) {
     // Not used
 }
+
+#endif
